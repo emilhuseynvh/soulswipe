@@ -171,7 +171,7 @@ export class BotUpdate {
 
   private async sendProfileCard(ctx: Context, user: User, withSwipe: boolean) {
     const caption = `${user.name}, ${user.age}\n\n${user.bio ?? ''}`;
-    const extra = withSwipe ? this.keyboards.swipe(user.id) : undefined;
+    const extra = withSwipe ? this.keyboards.swipe(user) : undefined;
 
     if (user.photoFileId) {
       await ctx.replyWithPhoto(user.photoFileId, {

@@ -28,9 +28,9 @@ export class MatchService {
       .andWhere(
         `NOT EXISTS (
           SELECT 1 FROM reactions r
-          WHERE r.fromId = :viewerId AND r.toId = u.id
+          WHERE r.fromId = :viewerId AND r.toId = u.id AND r.type = :likeType
         )`,
-        { viewerId: viewer.id },
+        { viewerId: viewer.id, likeType: ReactionType.LIKE },
       )
       .orderBy('RAND()')
       .limit(1)
@@ -41,11 +41,17 @@ export class MatchService {
     const existing = await this.reactions.findOne({
       where: { fromId: from.id, toId },
     });
-    if (existing) return false;
 
-    await this.reactions.save(
-      this.reactions.create({ fromId: from.id, toId, type }),
-    );
+    if (existing && existing.type === ReactionType.LIKE) return false;
+
+    if (existing) {
+      existing.type = type;
+      await this.reactions.save(existing);
+    } else {
+      await this.reactions.save(
+        this.reactions.create({ fromId: from.id, toId, type }),
+      );
+    }
 
     if (type !== ReactionType.LIKE) return false;
 

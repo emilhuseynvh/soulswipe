@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { User } from '../entities/user.entity';
 
 @Injectable()
 export class KeyboardService {
@@ -62,13 +63,17 @@ export class KeyboardService {
     };
   }
 
-  swipe(targetId: string) {
+  swipe(target: User) {
+    const url = target.username
+      ? `https://t.me/${target.username}`
+      : `tg://user?id=${target.id}`;
     return {
       reply_markup: {
         inline_keyboard: [
           [
-            { text: '❤️', callback_data: `like:${targetId}` },
-            { text: '👎', callback_data: `pass:${targetId}` },
+            { text: '❤️', callback_data: `like:${target.id}` },
+            { text: '💬', url },
+            { text: '👎', callback_data: `pass:${target.id}` },
           ],
         ],
       },

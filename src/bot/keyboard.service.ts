@@ -5,8 +5,12 @@ export class KeyboardService {
   genderPicker() {
     return {
       reply_markup: {
-        keyboard: [[{ text: '👨 Oğlan' }, { text: '👩 Qız' }]],
-        resize_keyboard: true,
+        inline_keyboard: [
+          [
+            { text: '👨 Oğlan', callback_data: 'gender:MALE' },
+            { text: '👩 Qız', callback_data: 'gender:FEMALE' },
+          ],
+        ],
       },
     };
   }
@@ -14,8 +18,12 @@ export class KeyboardService {
   lookingForPicker() {
     return {
       reply_markup: {
-        keyboard: [[{ text: '👨 Oğlan' }, { text: '👩 Qız' }]],
-        resize_keyboard: true,
+        inline_keyboard: [
+          [
+            { text: '👨 Oğlan', callback_data: 'looking:MALE' },
+            { text: '👩 Qız', callback_data: 'looking:FEMALE' },
+          ],
+        ],
       },
     };
   }

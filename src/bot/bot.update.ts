@@ -3,16 +3,15 @@ import {
   Command,
   Ctx,
   Hears,
-  InjectBot,
   On,
   Start,
   Update,
 } from 'nestjs-telegraf';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Context, Telegraf } from 'telegraf';
+import { Context } from 'telegraf';
 import { User } from '../entities/user.entity';
-import { Step } from '../types';
+import { Gender, Step } from '../types';
 import { OnboardingService } from './onboarding.service';
 import { MatchService } from './match.service';
 import { KeyboardService } from './keyboard.service';
@@ -22,7 +21,6 @@ import { ReactionType } from '../types';
 export class BotUpdate {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
-    @InjectBot() private readonly bot: Telegraf,
     private readonly onboarding: OnboardingService,
     private readonly matches: MatchService,
     private readonly keyboards: KeyboardService,
@@ -78,6 +76,28 @@ export class BotUpdate {
   @Action(/^pass:(\d+)$/)
   async onPass(@Ctx() ctx: any) {
     await this.handleReaction(ctx, ReactionType.PASS);
+  }
+
+  @Action(/^gender:(MALE|FEMALE)$/)
+  async onGender(@Ctx() ctx: any) {
+    const value = ctx.match?.[1] as Gender;
+    const user = await this.getOrCreate(ctx);
+    await ctx.answerCbQuery();
+    try {
+      await ctx.editMessageReplyMarkup(undefined);
+    } catch {}
+    await this.onboarding.applyGender(ctx, user, value);
+  }
+
+  @Action(/^looking:(MALE|FEMALE)$/)
+  async onLookingFor(@Ctx() ctx: any) {
+    const value = ctx.match?.[1] as Gender;
+    const user = await this.getOrCreate(ctx);
+    await ctx.answerCbQuery();
+    try {
+      await ctx.editMessageReplyMarkup(undefined);
+    } catch {}
+    await this.onboarding.applyLookingFor(ctx, user, value);
   }
 
   @On('photo')

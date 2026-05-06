@@ -105,6 +105,11 @@ export class OnboardingService {
       await ctx.reply('Düymələrdən birini seç.', this.keyboards.genderPicker());
       return;
     }
+    await this.applyGender(ctx, user, gender);
+  }
+
+  async applyGender(ctx: Context, user: User, gender: Gender) {
+    if (user.step !== Step.GENDER) return;
     user.gender = gender;
     user.step = Step.LOOKING_FOR;
     await this.users.save(user);
@@ -117,7 +122,12 @@ export class OnboardingService {
       await ctx.reply('Düymələrdən birini seç.', this.keyboards.lookingForPicker());
       return;
     }
-    user.lookingFor = target;
+    await this.applyLookingFor(ctx, user, target);
+  }
+
+  async applyLookingFor(ctx: Context, user: User, gender: Gender) {
+    if (user.step !== Step.LOOKING_FOR) return;
+    user.lookingFor = gender;
     user.step = Step.BIO;
     await this.users.save(user);
     await ctx.reply('Özün haqqında bir-iki cümlə yaz:');

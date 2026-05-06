@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TelegrafModule } from 'nestjs-telegraf';
 import { User } from './entities/user.entity';
 import { Reaction } from './entities/reaction.entity';
+import { ProfileDraft } from './entities/profile-draft.entity';
 import { BotModule } from './bot/bot.module';
 
 @Module({
@@ -18,7 +19,7 @@ import { BotModule } from './bot/bot.module';
         username: config.get<string>('DB_USER', 'root'),
         password: config.get<string>('DB_PASSWORD', ''),
         database: config.getOrThrow<string>('DB_NAME'),
-        entities: [User, Reaction],
+        entities: [User, Reaction, ProfileDraft],
         synchronize: true,
       }),
     }),

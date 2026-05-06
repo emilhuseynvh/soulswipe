@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Context } from 'telegraf';
 import { User } from '../entities/user.entity';
+import { ProfileDraft } from '../entities/profile-draft.entity';
 import { Gender, Step } from '../types';
 import { KeyboardService } from './keyboard.service';
 
@@ -10,18 +11,15 @@ import { KeyboardService } from './keyboard.service';
 export class OnboardingService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(ProfileDraft)
+    private readonly drafts: Repository<ProfileDraft>,
     private readonly keyboards: KeyboardService,
   ) {}
 
   async start(ctx: Context, user: User) {
     user.step = Step.NAME;
-    user.name = null;
-    user.age = null;
-    user.gender = null;
-    user.lookingFor = null;
-    user.bio = null;
-    user.photoFileId = null;
     await this.users.save(user);
+    await this.resetDraft(user.id);
     await ctx.reply('Salam! Adın nədir?');
   }
 
@@ -62,7 +60,9 @@ export class OnboardingService {
       await ctx.reply('İndi şəkil göndərmək lazım deyil.');
       return;
     }
-    user.photoFileId = fileId;
+    const draft = await this.getDraft(user.id);
+    draft.photoFileId = fileId;
+    await this.drafts.save(draft);
     await this.afterPhoto(ctx, user);
   }
 
@@ -71,8 +71,30 @@ export class OnboardingService {
       await ctx.reply('İndi nömrə göndərmək lazım deyil.');
       return;
     }
-    user.phone = phone;
+    const draft = await this.getDraft(user.id);
+    draft.phone = phone;
+    await this.drafts.save(draft);
     await this.finish(ctx, user);
+  }
+
+  async applyGender(ctx: Context, user: User, gender: Gender) {
+    if (user.step !== Step.GENDER) return;
+    const draft = await this.getDraft(user.id);
+    draft.gender = gender;
+    await this.drafts.save(draft);
+    user.step = Step.LOOKING_FOR;
+    await this.users.save(user);
+    await ctx.reply('Kim axtarırsan?', this.keyboards.lookingForPicker());
+  }
+
+  async applyLookingFor(ctx: Context, user: User, gender: Gender) {
+    if (user.step !== Step.LOOKING_FOR) return;
+    const draft = await this.getDraft(user.id);
+    draft.lookingFor = gender;
+    await this.drafts.save(draft);
+    user.step = Step.BIO;
+    await this.users.save(user);
+    await ctx.reply('Özün haqqında bir-iki cümlə yaz:');
   }
 
   private async setName(ctx: Context, user: User, text: string) {
@@ -81,7 +103,9 @@ export class OnboardingService {
       await ctx.reply('Ad 2-32 simvol arasında olmalıdır.');
       return;
     }
-    user.name = name;
+    const draft = await this.getDraft(user.id);
+    draft.name = name;
+    await this.drafts.save(draft);
     user.step = Step.AGE;
     await this.users.save(user);
     await ctx.reply('Neçə yaşın var?');
@@ -93,7 +117,9 @@ export class OnboardingService {
       await ctx.reply('Yaş 18-99 arasında olmalıdır.');
       return;
     }
-    user.age = age;
+    const draft = await this.getDraft(user.id);
+    draft.age = age;
+    await this.drafts.save(draft);
     user.step = Step.GENDER;
     await this.users.save(user);
     await ctx.reply('Cinsini seç:', this.keyboards.genderPicker());
@@ -108,14 +134,6 @@ export class OnboardingService {
     await this.applyGender(ctx, user, gender);
   }
 
-  async applyGender(ctx: Context, user: User, gender: Gender) {
-    if (user.step !== Step.GENDER) return;
-    user.gender = gender;
-    user.step = Step.LOOKING_FOR;
-    await this.users.save(user);
-    await ctx.reply('Kim axtarırsan?', this.keyboards.lookingForPicker());
-  }
-
   private async setLookingFor(ctx: Context, user: User, text: string) {
     const target = this.parseGender(text);
     if (!target) {
@@ -125,21 +143,15 @@ export class OnboardingService {
     await this.applyLookingFor(ctx, user, target);
   }
 
-  async applyLookingFor(ctx: Context, user: User, gender: Gender) {
-    if (user.step !== Step.LOOKING_FOR) return;
-    user.lookingFor = gender;
-    user.step = Step.BIO;
-    await this.users.save(user);
-    await ctx.reply('Özün haqqında bir-iki cümlə yaz:');
-  }
-
   private async setBio(ctx: Context, user: User, text: string) {
     const bio = text.trim();
     if (bio.length > 500) {
       await ctx.reply('Bio 500 simvoldan az olmalıdır.');
       return;
     }
-    user.bio = bio;
+    const draft = await this.getDraft(user.id);
+    draft.bio = bio;
+    await this.drafts.save(draft);
     user.step = Step.PHOTO;
     await this.users.save(user);
     await ctx.reply('İndi profil şəkli göndər.', this.keyboards.skipPhoto());
@@ -159,12 +171,49 @@ export class OnboardingService {
   }
 
   private async finish(ctx: Context, user: User) {
+    const draft = await this.drafts.findOne({ where: { userId: user.id } });
+    if (draft) {
+      user.name = draft.name;
+      user.age = draft.age;
+      user.gender = draft.gender;
+      user.lookingFor = draft.lookingFor;
+      user.bio = draft.bio;
+      user.photoFileId = draft.photoFileId;
+      if (draft.phone) user.phone = draft.phone;
+      await this.drafts.delete({ userId: user.id });
+    }
     user.step = Step.DONE;
+    user.complete = true;
     await this.users.save(user);
     await ctx.reply(
       'Profilin hazırdır! 🔎 Axtar düyməsi ilə insanlara baxa bilərsən.',
       this.keyboards.mainMenu(),
     );
+  }
+
+  private async getDraft(userId: string): Promise<ProfileDraft> {
+    let draft = await this.drafts.findOne({ where: { userId } });
+    if (!draft) {
+      draft = this.drafts.create({ userId });
+      await this.drafts.save(draft);
+    }
+    return draft;
+  }
+
+  private async resetDraft(userId: string) {
+    const draft = await this.drafts.findOne({ where: { userId } });
+    if (!draft) {
+      await this.drafts.save(this.drafts.create({ userId }));
+      return;
+    }
+    draft.name = null;
+    draft.age = null;
+    draft.gender = null;
+    draft.lookingFor = null;
+    draft.bio = null;
+    draft.photoFileId = null;
+    draft.phone = null;
+    await this.drafts.save(draft);
   }
 
   private parseGender(text: string): Gender | null {

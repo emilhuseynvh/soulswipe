@@ -1,20 +1,10 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import { Gender, Step } from '../types';
+import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Gender } from '../types';
 
-@Entity('users')
-export class User {
+@Entity('profile_drafts')
+export class ProfileDraft {
   @PrimaryColumn({ type: 'bigint', unsigned: true })
-  id: string;
-
-  @Column({ type: 'varchar', length: 64, nullable: true })
-  username: string | null;
+  userId: string;
 
   @Column({ type: 'varchar', length: 64, nullable: true })
   name: string | null;
@@ -22,11 +12,9 @@ export class User {
   @Column({ type: 'int', nullable: true })
   age: number | null;
 
-  @Index()
   @Column({ type: 'enum', enum: Gender, nullable: true })
   gender: Gender | null;
 
-  @Index()
   @Column({ type: 'enum', enum: Gender, nullable: true })
   lookingFor: Gender | null;
 
@@ -38,19 +26,4 @@ export class User {
 
   @Column({ type: 'varchar', length: 32, nullable: true })
   phone: string | null;
-
-  @Column({ type: 'enum', enum: Step, default: Step.NONE })
-  step: Step;
-
-  @Column({ type: 'boolean', default: false })
-  complete: boolean;
-
-  @Column({ type: 'boolean', default: true })
-  active: boolean;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 }

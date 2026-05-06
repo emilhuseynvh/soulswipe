@@ -5,7 +5,7 @@ import { Telegraf } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
 import { User } from '../entities/user.entity';
 import { Reaction } from '../entities/reaction.entity';
-import { ReactionType, Step } from '../types';
+import { ReactionType } from '../types';
 
 @Injectable()
 export class MatchService {
@@ -21,7 +21,7 @@ export class MatchService {
     return this.users
       .createQueryBuilder('u')
       .where('u.id != :viewerId', { viewerId: viewer.id })
-      .andWhere('u.step = :done', { done: Step.DONE })
+      .andWhere('u.complete = true')
       .andWhere('u.active = true')
       .andWhere('u.gender = :wanted', { wanted: viewer.lookingFor })
       .andWhere('u.lookingFor = :viewerGender', { viewerGender: viewer.gender })

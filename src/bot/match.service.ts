@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { Telegraf } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
 import { User } from '../entities/user.entity';
@@ -18,24 +18,36 @@ export class MatchService {
   async findCandidate(viewer: User): Promise<User | null> {
     if (!viewer.gender || !viewer.lookingFor) return null;
 
-    return this.users
-      .createQueryBuilder('u')
-      .leftJoin(
-        Reaction,
-        'r',
-        'r.fromId = :viewerId AND r.toId = u.id',
-        { viewerId: viewer.id },
-      )
-      .where('u.id != :viewerId', { viewerId: viewer.id })
-      .andWhere('u.complete = true')
-      .andWhere('u.active = true')
-      .andWhere('u.gender = :wanted', { wanted: viewer.lookingFor })
-      .andWhere('u.lookingFor = :viewerGender', { viewerGender: viewer.gender })
-      .andWhere("(r.type IS NULL OR r.type = 'PASS')")
-      .orderBy('CASE WHEN r.id IS NULL THEN 0 ELSE 1 END', 'ASC')
-      .addOrderBy('RAND()')
-      .limit(1)
-      .getOne();
+    const reactions = await this.reactions.find({
+      where: { fromId: viewer.id },
+      select: ['toId', 'type'],
+    });
+
+    const likedIds = reactions
+      .filter((r) => r.type === ReactionType.LIKE)
+      .map((r) => r.toId);
+    const passedIds = new Set(
+      reactions.filter((r) => r.type === ReactionType.PASS).map((r) => r.toId),
+    );
+
+    const excluded = [viewer.id, ...likedIds];
+
+    const candidates = await this.users.find({
+      where: {
+        id: Not(In(excluded)),
+        complete: true,
+        active: true,
+        gender: viewer.lookingFor,
+        lookingFor: viewer.gender,
+      },
+    });
+
+    if (candidates.length === 0) return null;
+
+    const fresh = candidates.filter((u) => !passedIds.has(u.id));
+    const pool = fresh.length > 0 ? fresh : candidates;
+
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
   async react(from: User, toId: string, type: ReactionType): Promise<boolean> {

@@ -42,12 +42,14 @@ export class BotUpdate {
     await this.onboarding.start(ctx, user);
   }
 
+  @Command('edit')
   @Hears('✏️ Profili yenilə')
   async onEdit(@Ctx() ctx: Context) {
     const user = await this.getOrCreate(ctx);
     await this.onboarding.start(ctx, user);
   }
 
+  @Command('profile')
   @Hears('👤 Mənim profilim')
   async onMyProfile(@Ctx() ctx: Context) {
     const user = await this.getOrCreate(ctx);
@@ -58,6 +60,7 @@ export class BotUpdate {
     await this.sendProfile(ctx, user);
   }
 
+  @Command('browse')
   @Hears('🔎 Axtar')
   async onBrowse(@Ctx() ctx: Context) {
     const user = await this.getOrCreate(ctx);

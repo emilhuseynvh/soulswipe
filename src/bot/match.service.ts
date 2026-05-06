@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Markup, Telegraf } from 'telegraf';
+import { Telegraf } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
 import { User } from '../entities/user.entity';
 import { Reaction } from '../entities/reaction.entity';
@@ -81,9 +81,11 @@ export class MatchService {
       ? `https://t.me/${partner.username}`
       : `tg://user?id=${partner.id}`;
 
-    const extra = Markup.inlineKeyboard([
-      Markup.button.url('💬 Mesaj yaz', url),
-    ]);
+    const extra = {
+      reply_markup: {
+        inline_keyboard: [[{ text: '💬 Mesaj yaz', url }]],
+      },
+    };
 
     try {
       if (partner.photoFileId) {

@@ -1,46 +1,69 @@
 import { Injectable } from '@nestjs/common';
-import { Markup } from 'telegraf';
 
 @Injectable()
 export class KeyboardService {
   genderPicker() {
-    return Markup.keyboard([['👨 Oğlan', '👩 Qız']])
-      .oneTime()
-      .resize();
+    return {
+      reply_markup: {
+        keyboard: [[{ text: '👨 Oğlan' }, { text: '👩 Qız' }]],
+        resize_keyboard: true,
+      },
+    };
   }
 
   lookingForPicker() {
-    return Markup.keyboard([['👨 Oğlan', '👩 Qız']])
-      .oneTime()
-      .resize();
+    return {
+      reply_markup: {
+        keyboard: [[{ text: '👨 Oğlan' }, { text: '👩 Qız' }]],
+        resize_keyboard: true,
+      },
+    };
   }
 
   skipPhoto() {
-    return Markup.keyboard([['Şəkilsiz davam et']])
-      .oneTime()
-      .resize();
+    return {
+      reply_markup: {
+        keyboard: [[{ text: 'Şəkilsiz davam et' }]],
+        resize_keyboard: true,
+      },
+    };
   }
 
   requestContact() {
-    return Markup.keyboard([
-      [Markup.button.contactRequest('📱 Nömrəmi paylaş')],
-      ['Keç'],
-    ])
-      .oneTime()
-      .resize();
+    return {
+      reply_markup: {
+        keyboard: [
+          [{ text: '📱 Nömrəmi paylaş', request_contact: true }],
+          [{ text: 'Keç' }],
+        ],
+        resize_keyboard: true,
+        one_time_keyboard: true,
+      },
+    };
   }
 
   mainMenu() {
-    return Markup.keyboard([
-      ['🔎 Axtar', '👤 Mənim profilim'],
-      ['✏️ Profili yenilə'],
-    ]).resize();
+    return {
+      reply_markup: {
+        keyboard: [
+          [{ text: '🔎 Axtar' }, { text: '👤 Mənim profilim' }],
+          [{ text: '✏️ Profili yenilə' }],
+        ],
+        resize_keyboard: true,
+      },
+    };
   }
 
   swipe(targetId: string) {
-    return Markup.inlineKeyboard([
-      Markup.button.callback('❤️', `like:${targetId}`),
-      Markup.button.callback('👎', `pass:${targetId}`),
-    ]);
+    return {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '❤️', callback_data: `like:${targetId}` },
+            { text: '👎', callback_data: `pass:${targetId}` },
+          ],
+        ],
+      },
+    };
   }
 }

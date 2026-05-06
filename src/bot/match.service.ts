@@ -20,19 +20,20 @@ export class MatchService {
 
     return this.users
       .createQueryBuilder('u')
+      .leftJoin(
+        Reaction,
+        'r',
+        'r.fromId = :viewerId AND r.toId = u.id',
+        { viewerId: viewer.id },
+      )
       .where('u.id != :viewerId', { viewerId: viewer.id })
       .andWhere('u.complete = true')
       .andWhere('u.active = true')
       .andWhere('u.gender = :wanted', { wanted: viewer.lookingFor })
       .andWhere('u.lookingFor = :viewerGender', { viewerGender: viewer.gender })
-      .andWhere(
-        `NOT EXISTS (
-          SELECT 1 FROM reactions r
-          WHERE r.fromId = :viewerId AND r.toId = u.id AND r.type = :likeType
-        )`,
-        { viewerId: viewer.id, likeType: ReactionType.LIKE },
-      )
-      .orderBy('RAND()')
+      .andWhere("(r.type IS NULL OR r.type = 'PASS')")
+      .orderBy('CASE WHEN r.id IS NULL THEN 0 ELSE 1 END', 'ASC')
+      .addOrderBy('RAND()')
       .limit(1)
       .getOne();
   }
